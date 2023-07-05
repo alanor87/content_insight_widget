@@ -1,6 +1,6 @@
 (() => {
   try {
-    console.log("content_insight script is loaded.");
+    console.log("content_insight script is loaded. Cool)");
 
     const styleTag = document.createElement("style");
     styleTag.setAttribute("id", "content_insight_widget_styling");
