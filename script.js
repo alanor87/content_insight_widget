@@ -1,12 +1,17 @@
 (() => {
   try {
-    console.log("content_insight script is loaded.");
-
+    // Getting these from the data-attributes of the <script> tag.
     let projectId;
+    let userId;
     let completionsURL;
 
+    // Shadow root div wrapper for styles isolation.
+    const shadowRootWrapper = document.createElement("div");
+    shadowRootWrapper.setAttribute("id", "content_insight_widget_wrapper");
+    const shadowDOM = shadowRootWrapper.attachShadow({ mode: "open", delegatesFocus: true });
+    document.body.append(shadowRootWrapper);
+
     const styleTag = document.createElement("style");
-    styleTag.setAttribute("id", "content_insight_widget_styling");
 
     const elements = {
       chatPopup: {
@@ -156,7 +161,9 @@
                           getElement(
                             ".content_insight_response_block"
                           ).innerHTML = "";
-                          getElement(".content_insight_ask_button").style.setProperty("display", "block");
+                          getElement(
+                            ".content_insight_ask_button"
+                          ).style.setProperty("display", "block");
                         },
                       },
                     ],
@@ -206,37 +213,42 @@
       },
     };
 
+    /** Getting elements from inside of the shadowDOM. */
     function getElement(filter) {
-      return document.querySelector(filter);
+      return shadowRootWrapper.shadowRoot.querySelector(filter);
     }
 
-    function init(){
-      const scriptSettings =  getElement('#content_insight_widget')?.dataset
-      projectId = scriptSettings.projectid; // projectid data attribute name - lowercase. 
-      completionsURL = scriptSettings.completionsurl;
+    function init() {
+      const scriptSettings = document.querySelector(
+        "#content_insight_widget"
+      )?.dataset; // Attributes name - lowercase.
+      projectId = scriptSettings.projectid; // projectid data.
+      userId = scriptSettings.userid; // projectid data.
+      completionsURL = scriptSettings.completionsurl; // backend address.
 
-      if(!projectId) throw Error('Missing projectId.');
-      if(!Boolean(new URL(completionsURL))) throw Error('Incorrect completionsURL.');
+      if (!projectId) throw Error("Missing projectId.");
+      if (!userId) throw Error("Missing userId.");
+      if (!Boolean(new URL(completionsURL)))
+        throw Error("Incorrect completionsURL.");
     }
 
     async function sendQuestionRequest(e) {
+      console.log('keyup fires :', e)
       if (e.key && e.key !== "Enter") return;
       const question = getElement(".content_insight_question_input").value;
       if (!question) return;
 
-      const { response } = await fetch(
-        completionsURL,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId,
-            question,
-          }),
-        }
-      ).then((res) => res.json());
+      const { response } = await fetch(completionsURL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          projectId,
+          question,
+        }),
+      }).then((res) => res.json());
 
       getElement(".content_insight_ask_button").style.setProperty(
         "display",
@@ -295,9 +307,11 @@
     }
 
     init();
-    document.head.append(styleTag);
-    document.body.append(...assemble(elements));
+
+    shadowDOM.append(styleTag);
+    shadowDOM.append(...assemble(elements));
+    console.log("%ccontent_insight script is loaded.", "color: green");
   } catch (error) {
-    console.log("content_insight script loading failed.", error);
+    console.error("content_insight script loading failed.", error);
   }
 })();
